@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agente Especialista em GitHub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #374151;
+            border-radius: 3px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #4b5563;
+        }
+        .markdown-body {
+            font-family: -apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;
+            color: #c9d1d9;
+        }
+        .markdown-body h1 { font-size: 2em; border-bottom: 1px solid #30363d; padding-bottom: 0.3em; margin-bottom: 16px; font-weight: 600;}
+        .markdown-body h2 { font-size: 1.5em; border-bottom: 1px solid #30363d; padding-bottom: 0.3em; margin-top: 24px; margin-bottom: 16px; font-weight: 600;}
+        .markdown-body h3 { font-size: 1.25em; margin-top: 24px; margin-bottom: 16px; font-weight: 600;}
+        .markdown-body p { margin-bottom: 16px; line-height: 1.5;}
+        .markdown-body ul { padding-left: 2em; margin-bottom: 16px; list-style-type: disc;}
+        .markdown-body code { background-color: rgba(110,118,129,0.4); padding: 0.2em 0.4em; border-radius: 6px; font-size: 85%; font-family: monospace;}
+        .markdown-body pre { background-color: #161b22; padding: 16px; overflow: auto; border-radius: 6px; margin-bottom: 16px;}
+        .markdown-body pre code { background: transparent; padding: 0;}
+        .markdown-body blockquote { border-left: 0.25em solid #30363d; color: #8b949e; padding: 0 1em; margin-bottom: 16px;}
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 font-sans min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-purple-600 to-indigo-500 p-2 rounded-xl text-white shadow-lg shadow-purple-500/20">
+                    <i class="fa-brands fa-github text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-white leading-tight">GitHub Specialist Agent</h1>
+                    <p class="text-xs text-gray-400">Gestão Autônoma de Repositórios, Pages & Documentação</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-3">
+                <button id="token-status-btn" onclick="openTokenModal()" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-medium transition-all">
+                    <span class="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                    <span id="token-status-text">Token Não Configurado</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col md:flex-row gap-6">
+
+        <!-- Sidebar / Navigation -->
+        <aside class="w-full md:w-64 flex-shrink-0 space-y-2">
+            <button onclick="switchTab('create-repo')" id="tab-create-repo" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30 font-medium text-sm transition-all text-left">
+                <i class="fa-solid fa-folder-plus text-base w-5"></i>
+                <span>Novo Repositório</span>
+            </button>
+            <button onclick="switchTab('github-pages')" id="tab-github-pages" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-gray-900 text-gray-400 hover:text-gray-200 border border-transparent font-medium text-sm transition-all text-left">
+                <i class="fa-solid fa-globe text-base w-5"></i>
+                <span>Ativar GitHub Pages</span>
+            </button>
+            <button onclick="switchTab('readme-gen')" id="tab-readme-gen" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-gray-900 text-gray-400 hover:text-gray-200 border border-transparent font-medium text-sm transition-all text-left">
+                <i class="fa-solid fa-file-code text-base w-5"></i>
+                <span>Gerador README</span>
+            </button>
+            <button onclick="switchTab('upload-files')" id="tab-upload-files" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-gray-900 text-gray-400 hover:text-gray-200 border border-transparent font-medium text-sm transition-all text-left">
+                <i class="fa-solid fa-cloud-arrow-up text-base w-5"></i>
+                <span>Upload Sem IDE</span>
+            </button>
+            <button onclick="switchTab('vscode-cli')" id="tab-vscode-cli" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-gray-900 text-gray-400 hover:text-gray-200 border border-transparent font-medium text-sm transition-all text-left">
+                <i class="fa-solid fa-terminal text-base w-5"></i>
+                <span>Comandos VS Code</span>
+            </button>
+            <button onclick="switchTab('arch-export')" id="tab-arch-export" class="w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-gray-900 text-gray-400 hover:text-gray-200 border border-transparent font-medium text-sm transition-all text-left">
+                <i class="fa-solid fa-sitemap text-base w-5"></i>
+                <span>Arquitetura & Código</span>
+            </button>
+
+            <!-- Quick Repo Selector -->
+            <div class="pt-6 border-t border-gray-800">
+                <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Repositório Ativo</label>
+                <div class="relative">
+                    <select id="active-repo-select" onchange="onRepoSelectChange()" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-gray-200 focus:outline-none focus:border-purple-500">
+                        <option value="">Selecione ou adicione Token...</option>
+                    </select>
+                    <button onclick="fetchRepositories()" title="Atualizar Repositórios" class="absolute right-2 top-2 text-gray-400 hover:text-white">
+                        <i class="fa-solid fa-rotate-right text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Dynamic Content Area -->
+        <section class="flex-1 bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+
+            <!-- TAB 1: CRIAR REPOSITÓRIO -->
+            <div id="content-create-repo" class="space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-folder-plus text-purple-400"></i> Criar Repositório no GitHub
+                    </h2>
+                    <p class="text-sm text-gray-400 mt-1">Crie um novo repositório remoto diretamente via API, já inicializado com README.md e opção de publicar no GitHub Pages.</p>
+                </div>
+
+                <form onsubmit="handleCreateRepo(event)" class="space-y-4 max-w-2xl">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-300 mb-1">Nome do Repositório *</label>
+                        <input type="text" id="repo-name" required placeholder="ex: meu-projeto-top" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-300 mb-1">Descrição</label>
+                        <textarea id="repo-desc" rows="3" placeholder="Descrição rápida do sistema..." class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-2.5 text-sm text-gray-100 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"></textarea>
+                    </div>
+
+                    <div class="flex items-center space-x-6 py-2">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="repo-vis" value="public" checked class="text-purple-600 focus:ring-purple-500">
+                            <span class="text-sm text-gray-300"><i class="fa-solid fa-globe text-xs mr-1"></i> Público</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="repo-vis" value="private" class="text-purple-600 focus:ring-purple-500">
+                            <span class="text-sm text-gray-300"><i class="fa-solid fa-lock text-xs mr-1"></i> Privado</span>
+                        </label>
+                    </div>
+
+                    <div class="space-y-2">
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="repo-init-readme" checked class="rounded border-gray-800 text-purple-600 focus:ring-purple-500">
+                            <label for="repo-init-readme" class="text-xs text-gray-300">Inicializar automaticamente com um arquivo README.md</label>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <input type="checkbox" id="repo-auto-pages" class="rounded border-gray-800 text-purple-600 focus:ring-purple-500">
+                            <label for="repo-auto-pages" class="text-xs text-emerald-400 font-medium">Ativar GitHub Pages automaticamente após a criação</label>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-create-repo" class="px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-medium text-sm transition-all shadow-lg shadow-purple-600/30 flex items-center space-x-2">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Criar Repositório Agora</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- TAB NOVE: GITHUB PAGES -->
+            <div id="content-github-pages" class="hidden space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-globe text-emerald-400"></i> Publicar & Ativar GitHub Pages
+                    </h2>
+                    <p class="text-sm text-gray-400 mt-1">Transforme seu repositório em um site público ou aplicação web acessível por qualquer pessoa na internet.</p>
+                </div>
+
+                <div class="max-w-2xl space-y-6 bg-gray-950 p-6 rounded-xl border border-gray-800">
+                    <div>
+                        <span class="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Repositório Selecionado</span>
+                        <div id="pages-repo-display" class="text-base font-bold text-purple-400 font-mono">Nenhum repositório selecionado</div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Branch para Hospedagem</label>
+                            <select id="pages-branch-select" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-gray-100 focus:outline-none focus:border-purple-500">
+                                <option value="main">main</option>
+                                <option value="master">master</option>
+                                <option value="gh-pages">gh-pages</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Pasta Raiz</label>
+                            <select id="pages-path-select" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-gray-100 focus:outline-none focus:border-purple-500">
+                                <option value="/">/ (Raiz do repositório)</option>
+                                <option value="/docs">/docs (Pasta /docs)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="pages-status-box" class="p-4 rounded-xl bg-gray-900 border border-gray-800 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium text-gray-400">Status do GitHub Pages:</span>
+                            <span id="pages-status-badge" class="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-800 text-gray-400">Verificando...</span>
+                        </div>
+                        <div id="pages-url-container" class="hidden pt-2 border-t border-gray-800">
+                            <span class="text-xs text-gray-400 block mb-1">Link do Site Publicado:</span>
+                            <a id="pages-url-link" href="#" target="_blank" class="text-sm font-semibold text-emerald-400 hover:underline flex items-center gap-1.5 break-all">
+                                <span>https://...</span>
+                                <i class="fa-solid fa-up-right-from-square text-xs"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 pt-2">
+                        <button onclick="enableGitHubPages()" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold transition-all flex items-center space-x-2 shadow-lg shadow-emerald-600/20">
+                            <i class="fa-solid fa-bolt"></i>
+                            <span>Ativar / Atualizar GitHub Pages</span>
+                        </button>
+                        <button onclick="checkPagesStatus()" class="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-xl text-xs font-medium transition-all flex items-center space-x-2">
+                            <i class="fa-solid fa-rotate"></i>
+                            <span>Verificar Status</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: GERADOR DE README -->
+            <div id="content-readme-gen" class="hidden space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-file-code text-purple-400"></i> Gerador Inteligente de README.md
+                    </h2>
+                    <p class="text-sm text-gray-400 mt-1">Crie uma documentação profissional completa para o repositório ativo.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Form -->
+                    <div class="space-y-4 bg-gray-950 p-4 rounded-xl border border-gray-800">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Título do Projeto</label>
+                            <input type="text" id="rm-title" placeholder="ex: Sistema de Vendas Online" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-gray-100">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Linguagens de Programação</label>
+                            <input type="text" id="rm-lang" placeholder="ex: TypeScript, JavaScript, HTML5" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-gray-100">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Frameworks & Bibliotecas</label>
+                            <input type="text" id="rm-frameworks" placeholder="ex: React, Vite, Tailwind CSS, Node.js" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-gray-100">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Descrição / Motivação do Sistema</label>
+                            <textarea id="rm-desc" rows="3" placeholder="Explicação de como e por que o sistema foi desenvolvido..." class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-gray-100"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-300 mb-1">Instruções de Instalação e Execução</label>
+                            <textarea id="rm-install" rows="2" placeholder="npm install && npm run dev" class="w-full bg-gray-900 border border-gray-800 rounded-lg px-3 py-2 text-xs text-gray-100"></textarea>
+                        </div>
+
+                        <div class="flex gap-2 pt-2">
+                            <button onclick="generateReadmeMarkdown()" class="flex-1 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-semibold transition-all">
+                                Gerar Preview
+                            </button>
+                            <button onclick="commitReadmeToGitHub()" class="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-all flex items-center justify-center space-x-1">
+                                <i class="fa-brands fa-github"></i>
+                                <span>Enviar pro GitHub</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live Preview -->
+                    <div class="flex flex-col h-[480px] bg-gray-950 rounded-xl border border-gray-800 overflow-hidden">
+                        <div class="bg-gray-900 px-4 py-2 border-b border-gray-800 flex justify-between items-center">
+                            <span class="text-xs font-semibold text-gray-400">Preview ao Vivo (README.md)</span>
+                            <button onclick="copyReadmeText()" class="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1">
+                                <i class="fa-regular fa-copy"></i> Copiar
+                            </button>
+                        </div>
+                        <div id="readme-preview" class="p-4 overflow-y-auto flex-1 markdown-body text-xs">
+                            <p class="text-gray-500 italic">Preencha os campos ao lado e clique em "Gerar Preview"...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 3: UPLOAD SEM IDE -->
+            <div id="content-upload-files" class="hidden space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up text-purple-400"></i> Envio Direto de Arquivos (Sem IDE)
+                    </h2>
+                    <p class="text-sm text-gray-400 mt-1">Carregue arquivos locais e envie diretamente para o repositório selecionado no GitHub sem precisar do VS Code.</p>
+                </div>
+
+                <div class="max-w-2xl space-y-4">
+                    <div class="border-2 border-dashed border-gray-800 hover:border-purple-500/50 bg-gray-950 p-8 rounded-2xl text-center transition-all cursor-pointer" onclick="document.getElementById('file-input-direct').click()">
+                        <i class="fa-solid fa-file-arrow-up text-4xl text-purple-500 mb-3"></i>
+                        <p class="text-sm font-medium text-gray-200">Clique para selecionar arquivos ou solte aqui</p>
+                        <p class="text-xs text-gray-500 mt-1">Envie HTML, JS, CSS, JSON, Imagens ou Documentos</p>
+                        <input type="file" id="file-input-direct" multiple class="hidden" onchange="handleFileSelection(event)">
+                    </div>
+
+                    <div id="selected-files-list" class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar">
+                        <!-- Items rendered dynamically -->
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-gray-300 mb-1">Mensagem do Commit *</label>
+                        <input type="text" id="upload-commit-msg" placeholder="ex: feat: adiciona arquivos iniciais do projeto" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-2 text-sm text-gray-100">
+                    </div>
+
+                    <button onclick="uploadFilesToGitHub()" id="btn-upload-direct" class="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-medium text-sm transition-all shadow-lg shadow-emerald-600/30 flex items-center space-x-2">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Fazer Commit e Enviar Arquivos</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- TAB 4: COMANDOS VS CODE / CLI -->
+            <div id="content-vscode-cli" class="hidden space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-terminal text-purple-400"></i> Comandos Git / VS Code
+                    </h2>
+                    <p class="text-sm text-gray-400 mt-1">Copie os comandos exatos para inicializar ou atualizar este repositório via terminal do VS Code.</p>
+                </div>
+
+                <div class="max-w-3xl space-y-4">
+                    <div class="bg-gray-950 border border-gray-800 rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-purple-400">1. Primeiro Envio (Repositório Novo)</span>
+                            <button onclick="copyCliCommands('cli-init-code')" class="text-xs text-gray-400 hover:text-white"><i class="fa-regular fa-copy"></i> Copiar</button>
+                        </div>
+                        <pre id="cli-init-code" class="bg-gray-900 p-3 rounded-lg text-xs font-mono text-emerald-400 overflow-x-auto">
+git init
+git add .
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/SEU_USUARIO/SEU_REPO.git
+git push -u origin main</pre>
+                    </div>
+
+                    <div class="bg-gray-950 border border-gray-800 rounded-xl p-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-xs font-bold text-purple-400">2. Atualizar Código Existente (Commit & Push)</span>
+                            <button onclick="copyCliCommands('cli-push-code')" class="text-xs text-gray-400 hover:text-white"><i class="fa-regular fa-copy"></i> Copiar</button>
+                        </div>
+                        <pre id="cli-push-code" class="bg-gray-900 p-3 rounded-lg text-xs font-mono text-emerald-400 overflow-x-auto">
+git add .
+git commit -m "update: atualiza fontes do projeto"
+git push origin main</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 5: ARQUITETURA E EXPORTAÇÃO -->
+            <div id="content-arch-export" class="hidden space-y-6">
+                <div>
+                    <h2 class="text-xl font-bold text-white flex items-center gap-2">
+                        <i class="fa-solid fa-sitemap text-purple-400"></i> Arquitetura do Projeto & Exportação
+                    </h2>
+                    <p class="text-sm text-gray-400 mt-1">Veja a estrutura de pastas sugerida ou exporte o código completo deste agente.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-gray-950 border border-gray-800 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-gray-200 mb-3">Estrutura de Pastas Recomendada</h3>
+                        <pre class="bg-gray-900 p-3 rounded-lg text-xs font-mono text-gray-300 leading-relaxed">
+github-agent/
+├── index.html          # Aplicação Web (Interface Completa)
+├── README.md           # Documentação
+└── .env.example        # Modelo de Token de Acesso</pre>
+                    </div>
+
+                    <div class="bg-gray-950 border border-gray-800 rounded-xl p-4 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-sm font-semibold text-gray-200 mb-1">Backup Local</h3>
+                            <p class="text-xs text-gray-400 mb-4">Baixe o código fonte completo desta aplicação num único arquivo HTML para rodar offline.</p>
+                        </div>
+                        <button onclick="downloadSelfSource()" class="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold transition-all flex items-center justify-center space-x-2">
+                            <i class="fa-solid fa-download"></i>
+                            <span>Baixar index.html Deste Agente</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- GitHub Token Modal -->
+    <div id="token-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-key text-purple-400"></i> Configurar Token do GitHub
+                </h3>
+                <button onclick="closeTokenModal()" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <p class="text-xs text-gray-400 leading-relaxed">
+                Insira seu <strong>Personal Access Token (PAT)</strong> do GitHub com escopo <code class="text-purple-400">repo</code>. O token fica salvo apenas no armazenamento local do seu navegador.
+            </p>
+            <div>
+                <label class="block text-xs font-medium text-gray-300 mb-1">GitHub Personal Access Token</label>
+                <input type="password" id="gh-token-input" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full bg-gray-950 border border-gray-800 rounded-xl px-4 py-2.5 text-xs text-gray-100 focus:outline-none focus:border-purple-500">
+            </div>
+            <div class="flex justify-end space-x-3 pt-2">
+                <button onclick="closeTokenModal()" class="px-4 py-2 rounded-xl text-xs font-medium text-gray-400 hover:bg-gray-800">Cancelar</button>
+                <button onclick="saveGitHubToken()" class="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-semibold">Salvar Token</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white px-4 py-3 rounded-xl border border-gray-700 shadow-2xl transition-all transform translate-y-20 opacity-0 z-50 flex items-center space-x-3 text-xs">
+        <i id="toast-icon" class="fa-solid fa-info-circle text-purple-400 text-base"></i>
+        <span id="toast-msg">Mensagem</span>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // State Management
+        let ghToken = localStorage.getItem('gh_agent_token') || '';
+        let currentUser = null;
+        let repositories = [];
+        let selectedFiles = [];
+        let activeTab = 'create-repo';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTokenStatus();
+            if (ghToken) {
+                fetchRepositories();
+            } else {
+                openTokenModal();
+            }
+        });
+
+        // Modal Handlers
+        function openTokenModal() {
+            document.getElementById('gh-token-input').value = ghToken;
+            document.getElementById('token-modal').classList.remove('hidden');
+        }
+
+        function closeTokenModal() {
+            document.getElementById('token-modal').classList.add('hidden');
+        }
+
+        function saveGitHubToken() {
+            const input = document.getElementById('gh-token-input').value.trim();
+            if (!input) return showToast('Por favor insira um token válido', 'error');
+            ghToken = input;
+            localStorage.setItem('gh_agent_token', ghToken);
+            closeTokenModal();
+            updateTokenStatus();
+            fetchRepositories();
+            showToast('Token do GitHub salvo com sucesso!', 'success');
+        }
+
+        function updateTokenStatus() {
+            const btn = document.getElementById('token-status-btn');
+            const txt = document.getElementById('token-status-text');
+            if (ghToken) {
+                btn.className = 'flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 text-xs font-medium transition-all';
+                txt.textContent = 'Token Configurado';
+            } else {
+                btn.className = 'flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-medium transition-all';
+                txt.textContent = 'Token Não Configurado';
+            }
+        }
+
+        // Tab Navigation
+        function switchTab(tabId) {
+            activeTab = tabId;
+            ['create-repo', 'github-pages', 'readme-gen', 'upload-files', 'vscode-cli', 'arch-export'].forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                const content = document.getElementById(`content-${t}`);
+                if (t === tabId) {
+                    btn.className = 'w-full flex items-center space-x-3 px-4 py-3 rounded-xl bg-purple-600/20 text-purple-400 border border-purple-500/30 font-medium text-sm transition-all text-left';
+                    content.classList.remove('hidden');
+                } else {
+                    btn.className = 'w-full flex items-center space-x-3 px-4 py-3 rounded-xl hover:bg-gray-900 text-gray-400 hover:text-gray-200 border border-transparent font-medium text-sm transition-all text-left';
+                    content.classList.add('hidden');
+                }
+            });
+
+            if (tabId === 'github-pages') {
+                checkPagesStatus();
+            }
+        }
+
+        // GitHub API Helpers
+        async function ghFetch(endpoint, options = {}) {
+            if (!ghToken) {
+                openTokenModal();
+                throw new Error('Token ausente');
+            }
+            const res = await fetch(`https://api.github.com${endpoint}`, {
+                ...options,
+                headers: {
+                    'Authorization': `token ${ghToken}`,
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                }
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ message: res.statusText }));
+                throw new Error(err.message || 'Erro na requisição ao GitHub');
+            }
+            return res.json();
+        }
+
+        async function fetchRepositories() {
+            try {
+                const user = await ghFetch('/user');
+                currentUser = user.login;
+                const repos = await ghFetch('/user/repos?sort=updated&per_page=30');
+                repositories = repos;
+                
+                const select = document.getElementById('active-repo-select');
+                select.innerHTML = '<option value="">Selecione um Repositório...</option>';
+                repos.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = r.name;
+                    opt.textContent = `${r.owner.login}/${r.name}`;
+                    select.appendChild(opt);
+                });
+
+                if (repos.length > 0) {
+                    select.value = repos[0].name;
+                    updateCliSnippets(repos[0].name);
+                    updatePagesRepoDisplay(repos[0].name);
+                }
+            } catch (err) {
+                console.error(err);
+                showToast(err.message, 'error');
+            }
+        }
+
+        function onRepoSelectChange() {
+            const val = document.getElementById('active-repo-select').value;
+            if (val) {
+                updateCliSnippets(val);
+                updatePagesRepoDisplay(val);
+                if (activeTab === 'github-pages') checkPagesStatus();
+            }
+        }
+
+        function updatePagesRepoDisplay(repoName) {
+            const disp = document.getElementById('pages-repo-display');
+            disp.textContent = currentUser ? `${currentUser}/${repoName}` : repoName;
+        }
+
+        function updateCliSnippets(repoName) {
+            const user = currentUser || 'SEU_USUARIO';
+            const initCode = `git init\ngit add .\ngit commit -m "first commit"\ngit branch -M main\ngit remote add origin https://github.com/${user}/${repoName}.git\ngit push -u origin main`;
+            document.getElementById('cli-init-code').textContent = initCode;
+        }
+
+        // Action: Create Repo
+        async function handleCreateRepo(e) {
+            e.preventDefault();
+            const name = document.getElementById('repo-name').value.trim();
+            const description = document.getElementById('repo-desc').value.trim();
+            const isPrivate = document.querySelector('input[name="repo-vis"]:checked').value === 'private';
+            const autoInit = document.getElementById('repo-init-readme').checked;
+            const autoPages = document.getElementById('repo-auto-pages').checked;
+
+            if (!name) return showToast('Nome do repositório é obrigatório', 'error');
+
+            try {
+                showToast('Criando repositório...', 'info');
+                const repo = await ghFetch('/user/repos', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name,
+                        description,
+                        private: isPrivate,
+                        auto_init: autoInit
+                    })
+                });
+                
+                showToast(`Repositório "${repo.name}" criado com sucesso!`, 'success');
+                
+                await fetchRepositories();
+                document.getElementById('active-repo-select').value = repo.name;
+                
+                if (autoPages) {
+                    showToast('Ativando GitHub Pages...', 'info');
+                    setTimeout(async () => {
+                        try {
+                            await enableGitHubPages();
+                        } catch (err) {
+                            console.error(err);
+                        }
+                    }, 1500);
+                } else {
+                    switchTab('readme-gen');
+                }
+
+                document.getElementById('repo-name').value = '';
+                document.getElementById('repo-desc').value = '';
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        // Action: GitHub Pages Management
+        async function checkPagesStatus() {
+            const activeRepo = document.getElementById('active-repo-select').value;
+            const badge = document.getElementById('pages-status-badge');
+            const urlContainer = document.getElementById('pages-url-container');
+            const urlLink = document.getElementById('pages-url-link');
+
+            if (!activeRepo) {
+                badge.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-800 text-gray-400';
+                badge.textContent = 'Nenhum repositório selecionado';
+                urlContainer.classList.add('hidden');
+                return;
+            }
+
+            try {
+                badge.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse';
+                badge.textContent = 'Verificando...';
+
+                const pagesData = await ghFetch(`/repos/${currentUser}/${activeRepo}/pages`);
+                
+                badge.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+                badge.textContent = 'Ativo / Publicado';
+
+                urlContainer.classList.remove('hidden');
+                urlLink.href = pagesData.html_url;
+                urlLink.querySelector('span').textContent = pagesData.html_url;
+            } catch (err) {
+                badge.className = 'px-2.5 py-1 rounded-full text-xs font-semibold bg-red-500/10 text-red-400 border border-red-500/20';
+                badge.textContent = 'Desativado / Não Configurado';
+                urlContainer.classList.add('hidden');
+            }
+        }
+
+        async function enableGitHubPages() {
+            const activeRepo = document.getElementById('active-repo-select').value;
+            const branch = document.getElementById('pages-branch-select').value;
+            const path = document.getElementById('pages-path-select').value;
+
+            if (!activeRepo) return showToast('Selecione um repositório ativo', 'error');
+
+            try {
+                showToast('Habilitando GitHub Pages via API...', 'info');
+                
+                // Try enabling or updating pages build settings
+                try {
+                    await ghFetch(`/repos/${currentUser}/${activeRepo}/pages`, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            source: {
+                                branch: branch,
+                                path: path
+                            }
+                        })
+                    });
+                } catch (e) {
+                    // If already exists, update settings
+                    await ghFetch(`/repos/${currentUser}/${activeRepo}/pages`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            source: {
+                                branch: branch,
+                                path: path
+                            }
+                        })
+                    });
+                }
+
+                showToast('GitHub Pages ativado com sucesso!', 'success');
+                await checkPagesStatus();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        // Action: README Generator
+        function generateReadmeMarkdown() {
+            const title = document.getElementById('rm-title').value.trim() || 'Meu Projeto';
+            const lang = document.getElementById('rm-lang').value.trim() || 'JavaScript';
+            const frameworks = document.getElementById('rm-frameworks').value.trim() || 'Node.js';
+            const desc = document.getElementById('rm-desc').value.trim() || 'Descrição do sistema...';
+            const install = document.getElementById('rm-install').value.trim() || 'npm install';
+
+            const md = `# ${title}\n\n${desc}\n\n## 🚀 Tecnologias e Frameworks\n\n- **Linguagem:** ${lang}\n- **Frameworks:** ${frameworks}\n\n## 🛠️ Como Executar o Projeto\n\n\`\`\`bash\n${install}\n\`\`\`\n\n---\n*Gerado automaticamente pelo **Agente Especialista em GitHub***.`;
+
+            document.getElementById('readme-preview').innerHTML = marked.parse(md);
+            return md;
+        }
+
+        async function commitReadmeToGitHub() {
+            const activeRepo = document.getElementById('active-repo-select').value;
+            if (!activeRepo) return showToast('Selecione um repositório ativo primeiro', 'error');
+
+            const content = generateReadmeMarkdown();
+            const encodedContent = btoa(unescape(encodeURIComponent(content)));
+
+            try {
+                showToast('Enviando README.md para o GitHub...', 'info');
+                
+                let sha = null;
+                try {
+                    const existing = await ghFetch(`/repos/${currentUser}/${activeRepo}/contents/README.md`);
+                    sha = existing.sha;
+                } catch (e) {}
+
+                await ghFetch(`/repos/${currentUser}/${activeRepo}/contents/README.md`, {
+                    method: 'PUT',
+                    body: JSON.stringify({
+                        message: 'docs: cria/atualiza README.md via Agente GitHub',
+                        content: encodedContent,
+                        sha: sha || undefined
+                    })
+                });
+
+                showToast('README.md enviado com sucesso!', 'success');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        // Action: File Direct Uploader
+        function handleFileSelection(e) {
+            const files = Array.from(e.target.files);
+            selectedFiles = files;
+            const container = document.getElementById('selected-files-list');
+            container.innerHTML = '';
+
+            files.forEach((f) => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center bg-gray-900 border border-gray-800 px-3 py-2 rounded-lg text-xs';
+                item.innerHTML = `
+                    <span class="text-gray-300 font-mono truncate max-w-xs">${f.name}</span>
+                    <span class="text-gray-500">${(f.size / 1024).toFixed(1)} KB</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        async function uploadFilesToGitHub() {
+            const activeRepo = document.getElementById('active-repo-select').value;
+            const msg = document.getElementById('upload-commit-msg').value.trim() || 'feat: upload de arquivos via Agente GitHub';
+
+            if (!activeRepo) return showToast('Selecione um repositório ativo', 'error');
+            if (selectedFiles.length === 0) return showToast('Selecione pelo menos um arquivo para enviar', 'error');
+
+            try {
+                for (const file of selectedFiles) {
+                    showToast(`Enviando ${file.name}...`, 'info');
+                    const base64 = await readFileAsBase64(file);
+                    
+                    let sha = null;
+                    try {
+                        const existing = await ghFetch(`/repos/${currentUser}/${activeRepo}/contents/${file.name}`);
+                        sha = existing.sha;
+                    } catch (e) {}
+
+                    await ghFetch(`/repos/${currentUser}/${activeRepo}/contents/${file.name}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            message: msg,
+                            content: base64,
+                            sha: sha || undefined
+                        })
+                    });
+                }
+                showToast('Todos os arquivos foram enviados com sucesso!', 'success');
+                selectedFiles = [];
+                document.getElementById('selected-files-list').innerHTML = '';
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Copy Handlers
+        function copyReadmeText() {
+            const text = generateReadmeMarkdown();
+            navigator.clipboard.writeText(text);
+            showToast('Markdown copiado para a área de transferência', 'success');
+        }
+
+        function copyCliCommands(id) {
+            const code = document.getElementById(id).textContent;
+            navigator.clipboard.writeText(code);
+            showToast('Comandos copiados!', 'success');
+        }
+
+        // Export Self HTML
+        function downloadSelfSource() {
+            const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'agente-github.html';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Toast Helper
+        function showToast(msg, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toast-msg');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastMsg.textContent = msg;
+            if (type === 'error') {
+                toastIcon.className = 'fa-solid fa-circle-exclamation text-red-400 text-base';
+            } else if (type === 'success') {
+                toastIcon.className = 'fa-solid fa-circle-check text-emerald-400 text-base';
+            } else {
+                toastIcon.className = 'fa-solid fa-info-circle text-purple-400 text-base';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
